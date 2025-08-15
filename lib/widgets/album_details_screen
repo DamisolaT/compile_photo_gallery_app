@@ -1,0 +1,73 @@
+import 'package:flutter/material.dart';
+import '../model/photo.dart';
+import '../services/gallery_service.dart';
+import 'photo_viewer_screen.dart';
+
+class AlbumDetailScreen extends StatefulWidget {
+  final int albumId;
+  final String albumTitle;
+
+  const AlbumDetailScreen({
+    super.key,
+    required this.albumId,
+    required this.albumTitle,
+  });
+
+  @override
+  State<AlbumDetailScreen> createState() => _AlbumDetailScreenState();
+}
+
+class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
+  late Future<List<Photo>> _photos;
+
+  @override
+  void initState() {
+    super.initState();
+    _photos = GalleryService().fetchPhotosByAlbum(widget.albumId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.albumTitle)),
+      body: FutureBuilder<List<Photo>>(
+        future: _photos,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          final photos = snapshot.data ?? [];
+          return GridView.builder(
+            padding: const EdgeInsets.all(8),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              mainAxisSpacing: 4,
+              crossAxisSpacing: 4,
+            ),
+            itemCount: photos.length,
+            itemBuilder: (context, index) {
+              final photo = photos[index];
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PhotoViewerScreen(
+                        photos: photos,
+                        initialIndex: index,
+                      ),
+                    ),
+                  );
+                },
+                child: Image.network(photo.thumbnailUrl, fit: BoxFit.cover),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
