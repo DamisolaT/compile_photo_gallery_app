@@ -1,16 +1,30 @@
-# photo_gallery_app
+# 📸 Photo Gallery App
 
-A new Flutter project.
+A Flutter mobile application that displays **users, their albums, and photos** using the free [JSONPlaceholder API](https://jsonplaceholder.typicode.com/).  
+Built with **Flutter + Riverpod** for state management.
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## 🚀 Features
 
-A few resources to get you started if this is your first Flutter project:
+- Fetch and display **users** from JSONPlaceholder API  
+- Tap a user to see their **albums**  
+- Tap an album to view its **photos**  
+- Display photo thumbnails in a **grid layout**  
+- Tap a photo to see its **full details**  
+- Handles **loading states** and **error states** gracefully  
+- Simple, clean UI using **Material Design**
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+---
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 🛠️ Tech Stack
+
+- **Flutter** (UI toolkit)
+- **Dart** (programming language)
+- **Riverpod** (state management)
+- **http** (API requests)
+
+---
+
+## 📂 Project Structure
+
