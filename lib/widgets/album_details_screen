@@ -1,11 +1,20 @@
+// lib/widgets/album_details_screen.dart
 import 'package:flutter/material.dart';
-import '../model/photo.dart';
-import '../services/gallery_service.dart';
-import 'photo_viewer_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:photo_gallery_app/model/photo.dart';
+import 'package:photo_gallery_app/services/gallery_service.dart';
+import 'package:photo_gallery_app/widgets/photo_detail_screen.dart';
 
-class AlbumDetailScreen extends StatefulWidget {
+// Provider for fetching photos of an album
+final photosProvider =
+    FutureProvider.family<List<Photo>, int>((ref, albumId) async {
+  final service = GalleryService();
+  return service.fetchPhotos(albumId);
+});
+
+class AlbumDetailScreen extends ConsumerWidget {
   final int albumId;
-  final String albumTitle;
+  final String albumTitle; // 👈 album title added
 
   const AlbumDetailScreen({
     super.key,
@@ -14,40 +23,26 @@ class AlbumDetailScreen extends StatefulWidget {
   });
 
   @override
-  State<AlbumDetailScreen> createState() => _AlbumDetailScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final photosAsync = ref.watch(photosProvider(albumId));
 
-class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
-  late Future<List<Photo>> _photos;
-
-  @override
-  void initState() {
-    super.initState();
-    _photos = GalleryService().fetchPhotosByAlbum(widget.albumId);
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.albumTitle)),
-      body: FutureBuilder<List<Photo>>(
-        future: _photos,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+      appBar: AppBar(
+        title: Text(albumTitle), // 👈 show album title
+      ),
+      body: photosAsync.when(
+        data: (photos) {
+          if (photos.isEmpty) {
+            return const Center(child: Text("No photos available"));
           }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          final photos = snapshot.data ?? [];
           return GridView.builder(
             padding: const EdgeInsets.all(8),
+            itemCount: photos.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              mainAxisSpacing: 4,
               crossAxisSpacing: 4,
+              mainAxisSpacing: 4,
             ),
-            itemCount: photos.length,
             itemBuilder: (context, index) {
               final photo = photos[index];
               return GestureDetector(
@@ -55,18 +50,24 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => PhotoViewerScreen(
-                        photos: photos,
-                        initialIndex: index,
-                      ),
+                      builder: (_) => PhotoDetailScreen(photo: photo),
                     ),
                   );
                 },
-                child: Image.network(photo.thumbnailUrl, fit: BoxFit.cover),
+                child: Image.network(
+                  photo.thumbnailUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.broken_image),
+                ),
               );
             },
           );
         },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(
+          child: Text("Error loading photos:\n$err"),
+        ),
       ),
     );
   }

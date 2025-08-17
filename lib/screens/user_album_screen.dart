@@ -1,85 +1,111 @@
-// screens/user_albums_screen.dart
 import 'package:flutter/material.dart';
-import 'package:photo_gallery_app/model/user_model.dart';
-import 'package:photo_gallery_app/screens/album_grid_screen.dart';
-import '../services/gallery_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:photo_gallery_app/providers/user_notifier.dart';
 
+import 'album_grid_screen.dart';
+import 'package:shimmer/shimmer.dart';
 
-class UserAlbumsScreen extends StatefulWidget {
+class UserAlbumsScreen extends ConsumerStatefulWidget {
   const UserAlbumsScreen({super.key});
 
   @override
-  State<UserAlbumsScreen> createState() => _UserAlbumsScreenState();
+  ConsumerState<UserAlbumsScreen> createState() => _UserAlbumsScreenState();
 }
 
-class _UserAlbumsScreenState extends State<UserAlbumsScreen> {
-  final GalleryService _service = GalleryService();
-  late Future<List<User>> _users;
-
-  @override
-  void initState() {
-    super.initState();
-    _users = _service.fetchUsers();
-  }
+class _UserAlbumsScreenState extends ConsumerState<UserAlbumsScreen> {
+  String query = "";
 
   @override
   Widget build(BuildContext context) {
+    final usersState = ref.watch(usersProvider);
+
     return Scaffold(
-      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text("Select a User"),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
-        elevation: 0,
       ),
-      body: FutureBuilder<List<User>>(
-        future: _users,
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            final users = snapshot.data!;
-            return ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: users.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final user = users[index];
-                return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 8,
-                    horizontal: 12,
-                  ),
-                  tileColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  leading: CircleAvatar(
-                    backgroundImage: NetworkImage(
-                      "https://i.pravatar.cc/150?img=${user.id + 10}",
-                    ),
-                  ),
-                  title: Text(
-                    user.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text("@${user.username}"),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 18),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AlbumsGridScreen(userId: user.id),
-                      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              decoration: const InputDecoration(
+                hintText: "Search user...",
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (value) {
+                setState(() => query = value.toLowerCase());
+              },
+            ),
+          ),
+          Expanded(
+            child: usersState.when(
+              data: (users) {
+                final filtered = users
+                    .where((u) => u.name.toLowerCase().contains(query))
+                    .toList();
+
+                if (filtered.isEmpty) {
+                  return const Center(child: Text("No users found"));
+                }
+
+                return ListView.builder(
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final user = filtered[index];
+                    return ListTile(
+                      title: Text(user.name),
+                      subtitle: Text("@${user.username}"),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 18),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AlbumsGridScreen(userId: user.id),
+                          ),
+                        );
+                      },
                     );
                   },
                 );
               },
-            );
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text(snapshot.error.toString()));
-          }
-          return const Center(child: CircularProgressIndicator());
-        },
+              loading: () => _buildShimmer(),
+              error: (err, _) => _buildError(err.toString()),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShimmer() {
+    return ListView.builder(
+      itemCount: 6,
+      itemBuilder: (context, index) => Shimmer.fromColors(
+        baseColor: Colors.grey.shade300,
+        highlightColor: Colors.grey.shade100,
+        child: ListTile(
+          leading: const CircleAvatar(),
+          title: Container(height: 10, color: Colors.white),
+          subtitle: Container(height: 10, color: Colors.white),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildError(String message) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(message, style: const TextStyle(color: Colors.red)),
+          const SizedBox(height: 10),
+          ElevatedButton(
+            onPressed: () => ref.read(usersProvider.notifier).refresh(),
+            child: const Text("Retry"),
+          ),
+        ],
       ),
     );
   }

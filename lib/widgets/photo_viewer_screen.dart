@@ -1,7 +1,6 @@
+// screens/photo_viewer_screen.dart
 import 'package:flutter/material.dart';
 import 'package:photo_gallery_app/model/photo.dart';
-
-
 
 class PhotoViewerScreen extends StatefulWidget {
   final List<Photo> photos;
@@ -48,7 +47,10 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
         itemBuilder: (context, index) {
           return InteractiveViewer(
             child: Center(
-              child: Image.network(widget.photos[index].url),
+              child: Image.network(
+                widget.photos[index].url,
+                fit: BoxFit.contain,
+              ),
             ),
           );
         },
